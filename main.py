@@ -6,6 +6,7 @@ import pandas as pd
 import wfdb as wf
 import pygwalker as pyg
 
+
 # record = wf.rdsamp('16265')
 # df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
 # df.to_csv('16265.csv')
@@ -22,6 +23,8 @@ lbda = 0.6
 lbdaP = 0.15
 thetaQRS = 0.15
 lbdaQRS = 0.15
+
+
 
 
 
