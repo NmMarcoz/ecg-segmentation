@@ -65,5 +65,16 @@ def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
         ecgH = sc.lfilter(b,a, ecg)
         ecgH = ecgH/ np.max(np.abs(ecgH))
 
+    hD = [-1,-2,0,2,1]*(1/8)
+    ecgD = np.convolve(ecgH, hD)
+    ecgD = ecgD/np.max(ecgD)
+
+    ecgS = ecgD**2
+
+    ecgM = np.convolve(ecgS, np.ones(1, round(0.150*fs))/round(0.150*fs))
+
+    [pks, locs] = sc.signal.find_peaks(ecgM, round(0.2*fs))
+
+    #parei aqui
 
 
