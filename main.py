@@ -5,6 +5,7 @@
 import pandas as pd
 import wfdb as wf
 import pygwalker as pyg
+import detectionPeaks
 
 
 # record = wf.rdsamp('16265')
