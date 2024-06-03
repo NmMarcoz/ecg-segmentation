@@ -3,21 +3,27 @@
 #AUTOR DO PORTE: MARCOS RAFAEL NOGUEIRA MOREIRA
 
 import pandas as pd
-import wfdb as wf
-import pygwalker as pyg
-import detectionPeaks
+import numpy as np
+import detectionPeaks as dt
+import ecg_plot as ecg
+import matplotlib.pyplot as plt
 
 
 # record = wf.rdsamp('16265')
 # df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
 # df.to_csv('16265.csv')
-df_csv = pd.read_csv('16265.csv')
+df_csv = pd.read_csv('./data/16265.csv')
 
 #print(df_csv._get_label_or_level_values('ECG1'))
 #-----------------------PARAMETROS------------------------#
-df_array = df_csv._get_label_or_level_values('ECG1').tolist()
-print(type(df_array))
-df_array = df_array[5000:100000]
+signal = df_csv._get_label_or_level_values('ECG1').tolist()
+signalY = df_csv._get_label_or_level_values('ECG2').tolist()
+
+signalXY = [signal, signalY]
+print(type(signalXY))
+print(type(signal))
+signal = signal[5000:100000]
+
 fs = round(81*0.7,2)
 theta = 0.4
 lbda = 0.6
@@ -27,16 +33,11 @@ lbdaQRS = 0.15
 
 
 
-
-
-
-
-# def signal_extract_pd(signal, window_size_percentage):
-#     signal = pd.read_csv('16265.csv')
-#     window_size = int(signal.)
-#
-
 #---------------------pré processamento-----------------------#
+
+def min_max_scaling(signal):
+    """Normalize a signal using min-max scaling."""
+    return (signal - signal.min()) / (signal.max() - signal.min())
 def signal_extract(signal, window_size_percentage):
 
     window_size  = int(len(signal)*window_size_percentage)
@@ -57,16 +58,54 @@ def signal_std(signal):
     normalized_signal = signalPd / signal_std
     return normalized_signal
 
-def detect_peaks(signal, threshold):
-    signalPd = pd.Series(signal)
-    rolling_max = signalPd.rolling(window = 2).max()
-    peaks = (signalPd >  rolling_max) & (signalPd > threshold)
-    return peaks
+# def detect_peaks(signal, threshold):
+#     signalPd = pd.Series(signal)
+#     rolling_max = signalPd.rolling(window = 2).max()
+#     peaks = (signalPd >  rolling_max) & (signalPd > threshold)
+#     return peaks
 
-windowedSignal = signal_extract(df_array, 0.1)
+windowedSignal = signal_extract(signal, 0.1)
 signal_mean = signal_mean(windowedSignal)
 signal_std = signal_std(signal_mean)
 final_signal = signal_std
 print(final_signal)
+
+peaks = dt.dtPeaks(final_signal, [0,60], fs, 0 )
+
+#print(peaks[0])
+peaks_array = pd.array(peaks[0], int)
+final_signal = final_signal[0:20]
+# signal = signal[0:175]
+# peaks[0] = peaks[0][0:175]
+
+timeAxis = np.arange(len(peaks[0])) / fs
+timeAxisNormalSignal = np.arange(len(signal))/fs
+
+# plt.figure(figsize=(10, 6))
+# plt.plot(timeAxis, peaks[0])
+#     #plt.plot(timeAxisNormalSignal, signal)
+# plt.xlabel('Tempo (s)')
+# plt.ylabel('Batimentos')
+# plt.title('ECG Signal')
+# plt.grid(True)  # Add a grid for better readability
+# plt.show()
+
+def plotSignal(signal, title):
+    signal = signal[0:500]
+    timeAxis = np.arange(len(signal)) / fs
+    plt.figure(figsize=(10, 6))
+    plt.plot(timeAxis, signal)
+        # plt.plot(timeAxisNormalSignal, signal)
+    plt.xlabel('Tempo (s)')
+    plt.ylabel('Batimentos')
+    plt.title(title)
+    plt.grid(True)  # Add a grid for better readability
+    plt.show()
+
+plotSignal(peaks[0], "com detecção de pico")
+plotSignal(signal, "sem detecção de pico")
+# for peak in peaks_array:
+#     if peak > 0:
+#         print(peak)
 
 

@@ -5,7 +5,8 @@ import scipy as sc
 
 
 
-def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
+#def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
+def dtPeaks(ecg, min, fs, flagFigura):
     qrsC = []
     qrsI = []
     SIG_LEV = 0
@@ -43,7 +44,7 @@ def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
         b = [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32,-32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
         a = [1,-1]
 
-        hH = sc.lfilter(b,a, [1, np.zeros((1,32))])
+        hH = sc.signal.lfilter(b,a, [1, np.zeros((1,32))])
         ecgH = np.convolve(ecgL, hH)
         ecgH = ecgH/ np.max((( np.abs(ecgH))))
 
@@ -62,29 +63,29 @@ def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
         b,a = sc.signal.butter(2,[f1Normal,f2Normal], "bandpass")
        # b,a = sc.signal.ellip(3,1,20,[f1,f2]/(fs/2))
 
-        ecgH = sc.lfilter(b,a, ecg)
+        ecgH = sc.signal.lfilter(b,a, ecg)
         ecgH = ecgH/ np.max(np.abs(ecgH))
 
-    hD = [-1,-2,0,2,1]*(1/8)
+    hD = np.array([-1,-2,0,2,1])
+    hD = hD/8
     ecgD = np.convolve(ecgH, hD)
     ecgD = ecgD/np.max(ecgD)
 
     ecgS = ecgD**2
-
-    ecgM = np.convolve(ecgS, np.ones(1, round(0.150*fs))/round(0.150*fs))
+    window_size = round(0.150*fs)
+    ecgM = np.convolve(ecgS, np.ones(window_size)/round(0.150*fs))
 
     [pks, locs] = sc.signal.find_peaks(ecgM, round(0.2*fs))
-    #parei aqui
-
-    thrSig = (np.max(ecgM[:2*fs]))/3 #25% do sinal
-    thrNoise = (np.mean(ecgM[:2*fs]))/2
+    sliceCut = int(2*fs)
+    thrSig = (np.max(ecgM[:sliceCut]))/3 #25% do sinal
+    thrNoise = (np.mean(ecgM[:sliceCut]))/2
     sigLevel = thrSig
     noiseLevel = thrNoise
 
     #--------------------------------------------
 
-    thrSig1 = (np.max(ecgH[:2*fs]))/3
-    thrNoise1 = (np.max(ecgH[:2*fs]))/2
+    thrSig1 = (np.max(ecgH[:sliceCut]))/3
+    thrNoise1 = (np.max(ecgH[:sliceCut]))/2
     sigLevel1 = thrSig1
     noiseLevel1 = thrNoise1
 
@@ -205,7 +206,7 @@ def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
         notNois = 0
         serBack = 0
 
-
+    return [ecgH,  qrsAmpRaw, qrsIRaw, delay]
 
 
 
