@@ -13,33 +13,24 @@ import matplotlib.pyplot as plt
 # df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
 # df.to_csv('16265.csv')
 df_csv = pd.read_csv('./data/16265.csv')
-
-#print(df_csv._get_label_or_level_values('ECG1'))
-#-----------------------PARAMETROS------------------------#
 signal = df_csv._get_label_or_level_values('ECG1').tolist()
 signalY = df_csv._get_label_or_level_values('ECG2').tolist()
 
 signalXY = [signal, signalY]
-print(type(signalXY))
-print(type(signal))
-signal = signal[5000:100000]
-
+#signal = signal[5000:100000]
 fs = round(81*0.7,2)
+#fs = round(20*0.2, 2)
+print(f"fs: {fs}")
 theta = 0.4
 lbda = 0.6
 lbdaP = 0.15
 thetaQRS = 0.15
 lbdaQRS = 0.15
-
-
-
 #---------------------pré processamento-----------------------#
-
 def min_max_scaling(signal):
     """Normalize a signal using min-max scaling."""
     return (signal - signal.min()) / (signal.max() - signal.min())
 def signal_extract(signal, window_size_percentage):
-
     window_size  = int(len(signal)*window_size_percentage)
     start_index = int(len(signal)/2) - window_size//2
     end_index = start_index + window_size
@@ -64,7 +55,7 @@ def signal_std(signal):
 #     peaks = (signalPd >  rolling_max) & (signalPd > threshold)
 #     return peaks
 
-windowedSignal = signal_extract(signal, 0.1)
+windowedSignal = signal_extract(signal, 0.01)
 signal_mean = signal_mean(windowedSignal)
 signal_std = signal_std(signal_mean)
 final_signal = signal_std
@@ -72,8 +63,21 @@ print(final_signal)
 
 peaks = dt.dtPeaks(final_signal, [0,60], fs, 0 )
 
-#print(peaks[0])
+qrs_amplitude = peaks[1]
+qrs_index = peaks[2]
+delay = peaks[3]
 peaks_array = pd.array(peaks[0], int)
+
+print(f"qrsIndex: {qrs_index}")
+print(f"qrsamplitude: {qrs_amplitude}")
+#print(qrs_amplitude)
+
+#-------------------------CICLO-----------------------------------#
+# if(qrs_index[1] < theta*fs):
+#     qrs_index[1] = []
+#     qrs_amplitude[1] = []
+
+
 final_signal = final_signal[0:20]
 # signal = signal[0:175]
 # peaks[0] = peaks[0][0:175]
@@ -104,6 +108,8 @@ def plotSignal(signal, title):
 
 plotSignal(peaks[0], "com detecção de pico")
 plotSignal(signal, "sem detecção de pico")
+
+
 # for peak in peaks_array:
 #     if peak > 0:
 #         print(peak)
