@@ -36,7 +36,7 @@ def dtPeaks(ecg, min, fs, flagFigura):
     wn1 = fc1/(fs/2)
     ordF = 60
 
-    if (fs == 200):
+    if fs == 200:
         #PRIMEIRO PASSO
         # Primeiro filtro: Passa-baixa
         b = [1, 0, 0, 0, 0, 0, -2, 0, 0, 0, 0, 0, 1]
@@ -53,7 +53,7 @@ def dtPeaks(ecg, min, fs, flagFigura):
 
         hH = sc.signal.lfilter(b,a, [1, np.zeros((1,32))])
         ecgH = np.convolve(ecgL, hH)
-        ecgH = ecgH/ np.max((( np.abs(ecgH))))
+        ecgH = ecgH/ np.max((np.abs(ecgH)))
 
     else:
         # Filtro Passa-banda
@@ -90,10 +90,10 @@ def dtPeaks(ecg, min, fs, flagFigura):
     #data = sc.signal.find_peaks(ecgM, height=2)
     #pks = PICOS
     #pks = sc.signal.find_peaks(ecgM, distance =round(0.2*fs))[0]
-    pks = sc.signal.find_peaks(ecgM, distance = round(0.2*fs))[0]
-    #locs = MOMENTOS DE PICO
+    locs = sc.signal.find_peaks(ecgM, distance = round(0.2*fs))[0]
+    pks = ecgM[locs]
 
-    locs = data[0]
+    #locs = data[0]
 
     #pks = sc.signal.find_peaks(ecgM, round(0.2*fs))
     print(f"pks: {pks}")

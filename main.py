@@ -5,14 +5,15 @@
 import pandas as pd
 import numpy as np
 import detectionPeaks as dt
-import ecg_plot as ecg
+import wfdb as wf
+#import ecg_plot as ecg
 import matplotlib.pyplot as plt
 
-
-# record = wf.rdsamp('16265')
-# df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
-# df.to_csv('16265.csv')
+#record = wf.rdsamp('16265')
+#df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
+#df.to_csv('16265.csv')
 df_csv = pd.read_csv('./data/16265.csv')
+
 signal = df_csv._get_label_or_level_values('ECG1').tolist()
 signalY = df_csv._get_label_or_level_values('ECG2').tolist()
 
@@ -48,12 +49,6 @@ def signal_std(signal):
     signal_std = signalPd.std()
     normalized_signal = signalPd / signal_std
     return normalized_signal
-
-# def detect_peaks(signal, threshold):
-#     signalPd = pd.Series(signal)
-#     rolling_max = signalPd.rolling(window = 2).max()
-#     peaks = (signalPd >  rolling_max) & (signalPd > threshold)
-#     return peaks
 
 windowedSignal = signal_extract(signal, 0.01)
 signal_mean = signal_mean(windowedSignal)
@@ -108,10 +103,6 @@ def plotSignal(signal, title):
 
 plotSignal(peaks[0], "com detecção de pico")
 plotSignal(signal, "sem detecção de pico")
-
-
-# for peak in peaks_array:
-#     if peak > 0:
-#         print(peak)
+plotSignal(qrs_amplitude, "qrs amplitude")
 
 
