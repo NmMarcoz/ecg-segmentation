@@ -1,6 +1,7 @@
 ##PORTE DO CÓDIGO DE SEGMENTAÇÃO ECG
 ##AUTOR DO ALGORTIMO: JONATHAN ARAUJO QUEIROZ
 #AUTOR DO PORTE: MARCOS RAFAEL NOGUEIRA MOREIRA
+import sys
 
 import pandas as pd
 import numpy as np
@@ -9,9 +10,12 @@ import wfdb as wf
 #import ecg_plot as ecg
 import matplotlib.pyplot as plt
 
-#record = wf.rdsamp('16265')
-#df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
-#df.to_csv('16265.csv')
+print("recursion limite", sys.getrecursionlimit())
+
+# record = wf.rdsamp('16265')
+# df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
+# df.to_csv('16265.csv')
+
 df_csv = pd.read_csv('./data/16265.csv')
 
 signal = df_csv._get_label_or_level_values('ECG1').tolist()
@@ -63,15 +67,21 @@ qrs_index = peaks[2]
 delay = peaks[3]
 peaks_array = pd.array(peaks[0], int)
 
-print(f"qrsIndex: {qrs_index}")
+#print(f"qrsIndex: {qrs_index}")
 print(f"qrsamplitude: {qrs_amplitude}")
 #print(qrs_amplitude)
 
+#TODO -> tenho que fazer essa parte do ciclo, e da segmentação.
 #-------------------------CICLO-----------------------------------#
-# if(qrs_index[1] < theta*fs):
+# if qrs_index[1] < theta  *fs:
 #     qrs_index[1] = []
 #     qrs_amplitude[1] = []
-
+#
+# if qrs_index[-1] > len(signal) - (0.6*fs):
+#     qrs_index[-1] = []
+#     qrs_amplitude[-1] = []
+#
+# B = np.zeros(len(qrs_amplitude))
 
 final_signal = final_signal[0:20]
 # signal = signal[0:175]
@@ -79,15 +89,6 @@ final_signal = final_signal[0:20]
 
 timeAxis = np.arange(len(peaks[0])) / fs
 timeAxisNormalSignal = np.arange(len(signal))/fs
-
-# plt.figure(figsize=(10, 6))
-# plt.plot(timeAxis, peaks[0])
-#     #plt.plot(timeAxisNormalSignal, signal)
-# plt.xlabel('Tempo (s)')
-# plt.ylabel('Batimentos')
-# plt.title('ECG Signal')
-# plt.grid(True)  # Add a grid for better readability
-# plt.show()
 
 def plotSignal(signal, title):
     signal = signal[0:500]
