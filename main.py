@@ -5,18 +5,19 @@ import sys
 
 import pandas as pd
 import numpy as np
-from scipy.special import lmbda
+from matplotlib.backends.backend_pgf import PdfPages
+from datetime import datetime
 
 import detectionPeaks as dt
 import wfdb as wf
 #import ecg_plot as ecg
 import matplotlib.pyplot as plt
-
+plt.rcParams['pgf.texsystem'] = 'xelatex'
 print("recursion limite", sys.getrecursionlimit())
 
 # record = wf.rdsamp('16265')
 # df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
-# df.to_csv('16265.csv')
+# df.to_csv('16265.csv')RuntimeError: 'xelatex' not found; install it or change rcParams['pgf.texsystem'] to an available TeX implementation
 
 df_csv = pd.read_csv('./data/16265.csv')
 
@@ -123,14 +124,24 @@ T = T.T
 timeAxis = np.arange(len(peaks[0])) / fs
 timeAxisNormalSignal = np.arange(len(signal))/fs
 
+
+def saveToPdf(figs):
+    date = datetime.today().isoformat(timespec='seconds')
+    with PdfPages(f"./graficos/graphic-{date}") as pdf:
+        for fig in figs:
+            pdf.savefig(fig)
+        plt.close()
+
+
 def plotSignal(signal, title, reduce = 0, invert = False):
+
     timeAxis = []
     if(reduce != 0):
         signal = signal[0:reduce]
         timeAxis = np.arange(reduce) / fs
     else:
         timeAxis = np.arange(len(signal)) / fs
-    plt.figure(figsize=(10, 6))
+    plot = plt.figure(figsize=(10, 6))
     plt.subplot(2,1,1)
     # plt.plot(timeAxis, signal)
     if(invert):
@@ -139,16 +150,19 @@ def plotSignal(signal, title, reduce = 0, invert = False):
         plt.plot(timeAxis,signal)
     # plt.plot(timeAxisNormalSignal, signal)
     plt.xlabel('Tempo (s)')
-    plt.ylabel('Batimentos')
+    plt.ylabel('Sinal')
     plt.title(title)
     plt.grid(True)  # Add a grid for better readability
-    plt.show()
+    #plt.show()
+    return plot
 
 #
-plotSignal(ecgH, "SINAL COMPLETO", 500)
-plotSignal(B[0], "BATIMENTOS", 300)
-plotSignal(QRS[0], "COMPLEXO QRS", 300)
-plotSignal(T[0], "ONDA T", 300 )
-plotSignal(P[0], "ONDA P", 300)
+signal = plotSignal(signal, "SINAL COMPLETO (SUJO)", 500)
+ecgProcessado = plotSignal(ecgH, "SINAL COMPLETO (LIMPO)", 500)
+batimentos = plotSignal(B[0], "BATIMENTOS", 300)
+complexoQrs = plotSignal(QRS[0], "COMPLEXO QRS", 300)
+ondaT = plotSignal(T[0], "ONDA T", 300 )
+ondaP = plotSignal(P[0], "ONDA P", 300)
 
+saveToPdf([signal,ecgProcessado, batimentos, complexoQrs, ondaT, ondaP])
 
