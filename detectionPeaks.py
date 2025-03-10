@@ -209,8 +209,9 @@ def dtPeaks(ecg, min, fs, flagFigura):
                         x_i_t = np.argmax(ecgH[locsTemp - round(0.150*fs): -1])
                 if y_i_t > thrNoise1:
                     print("y_i_t > thrNoise")
-                    qrsIRaw = [qrsIRaw, locsTemp-round(0.150*fs) + (x_i_t -1)]
-                    qrsAmpRaw = [qrsAmpRaw, y_i_t]
+                    #qrsIRaw = [qrsIRaw, locsTemp-round(0.150*fs) + (x_i_t -1)]
+                    qrsIRaw.append(locsTemp - round(0.150*fs) + (x_i_t - 1))
+                    qrsAmpRaw.append(y_i_t)
                     sigLevel1 = 0.25*y_i_t + 0.75*sigLevel1
                 notNois = 1
                 sigLevel = 0.25*pksTemp + 0.75*sigLevel
@@ -233,8 +234,8 @@ def dtPeaks(ecg, min, fs, flagFigura):
 
                     if np.abs(slope1)<= np.abs(0.5*slope2):
                         print("ABS <= SLOPE2 CHECK")
-                        noisC= [noisC, pks[i]]
-                        noisI = [noisI, locs[i]]
+                        noisC.append(pks[i])
+                        noisI.append(locs[i])
                         skip =1 # indentificação da onda T
 
                         noiseLevel1 *= 0.125*y_i + 0.875
@@ -257,9 +258,9 @@ def dtPeaks(ecg, min, fs, flagFigura):
             if y_i >= thrSig1:
                 print("Y_I MAIOR QUE TRHSIG")
                 if serBack:
-                    qrsIRaw = [qrsIRaw, x_i] #salvando o index do bandpass
+                    qrsIRaw.append(x_i) #salvando o index do bandpass
                 else:
-                    qrsIRaw = [qrsIRaw, locs[i]-round(0.150*fs)+(x_i-1)]
+                    qrsIRaw.append(locs[i]-round(0.150*fs)+(x_i-1))
 
                 #qrsAmpRaw = [qrsAmpRaw, y_i]
                 qrsAmpRaw.append(y_i)
@@ -274,8 +275,8 @@ def dtPeaks(ecg, min, fs, flagFigura):
             #print(f"noiseLevel1 terceira vez: {noiseLevel1}")
             noiseLevel = 0.125*pks[i] + 0.875*noiseLevel
         elif (pks[i]< thrNoise):
-            noisC = [noisC, pks[i]]
-            noisI = [noisI, locs[i]]
+            noisC.append(pks[i])
+            noisI.append(locs[i])
 
             noiseLevel1 = 0.125*y_i + 0.875*noiseLevel1
             #print(f"noiseLevel1 quarta vez: {noiseLevel1}")
@@ -300,14 +301,14 @@ def dtPeaks(ecg, min, fs, flagFigura):
 
         #-----------------------------
         # take a track of thresholds of smoothed signal
-        siglBuf = [siglBuf, sigLevel]
-        noislBuf = [noislBuf, noiseLevel]
-        thrsBuf = [thrsBuf, thrSig]
+        siglBuf.append(sigLevel)
+        noislBuf.append(noiseLevel)
+        thrsBuf.append(thrSig)
 
         #take a track of thresholds of filtered signal
-        siglBuf1 = [siglBuf1, sigLevel1]
-        noislBuf1 = [noislBuf1, noiseLevel1]
-        thrsBuf1 = [thrsBuf1, thrSig1]
+        siglBuf1.append(sigLevel1)
+        noislBuf1.append(noiseLevel1)
+        thrsBuf1.append(thrSig1)
 
         skip = 0
         notNois = 0
