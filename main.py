@@ -2,7 +2,7 @@
 ##AUTOR DO ALGORTIMO: JONATHAN ARAUJO QUEIROZ
 #AUTOR DO PORTE: MARCOS RAFAEL NOGUEIRA MOREIRA
 import sys
-
+import os
 import pandas as pd
 import numpy as np
 from matplotlib.backends.backend_pgf import PdfPages
@@ -12,7 +12,11 @@ import detectionPeaks as dt
 import wfdb as wf
 #import ecg_plot as ecg
 import matplotlib.pyplot as plt
-plt.rcParams['pgf.texsystem'] = 'xelatex'
+import matplotlib as mt
+mt.use("pdf")
+#plt.rcParams['pgf.texsystem'] = 'xelatex'
+
+#os.environ["PATH"] += os.pathsep + '/usr/local/texlive/2018/bin/x86_64-darwin'
 print("recursion limite", sys.getrecursionlimit())
 
 # record = wf.rdsamp('16265')
@@ -127,10 +131,27 @@ timeAxisNormalSignal = np.arange(len(signal))/fs
 
 def saveToPdf(figs):
     date = datetime.today().isoformat(timespec='seconds')
-    with PdfPages(f"./graficos/graphic-{date}") as pdf:
-        for fig in figs:
-            pdf.savefig(fig)
-        plt.close()
+
+    fig, axs = plt.subplots(2, 3, figsize=(15, 10))
+    axs = axs.ravel()  
+    
+    # Plot each figure in its own subplot
+    for i, fig_item in enumerate(figs):
+        if isinstance(fig_item, plt.Figure):
+  
+            data = fig_item.axes[0].lines[0].get_data()
+            axs[i].plot(data[0], data[1])
+            axs[i].set_title(fig_item.axes[0].get_title())
+            axs[i].set_xlabel(fig_item.axes[0].get_xlabel())
+            axs[i].set_ylabel(fig_item.axes[0].get_ylabel())
+            axs[i].grid(True)
+            plt.close(fig_item)  
+    
+    plt.tight_layout()
+    
+
+    plt.savefig(f'./graficos/ecg_analysis_{date}.png', dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 def plotSignal(signal, title, reduce = 0, invert = False):
