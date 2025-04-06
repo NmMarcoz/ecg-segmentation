@@ -185,5 +185,5 @@ complexoQrs = plotSignal(QRS[0], "COMPLEXO QRS", 300)
 ondaT = plotSignal(T[0], "ONDA T", 300 )
 ondaP = plotSignal(P[0], "ONDA P", 300)
 
-saveToPng\([signal,ecgProcessado, batimentos, complexoQrs, ondaT, ondaP])
+saveToPng([signal,ecgProcessado, batimentos, complexoQrs, ondaT, ondaP])
 
