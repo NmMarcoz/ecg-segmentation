@@ -145,6 +145,7 @@ def saveToPng(figs):
             axs[i].set_xlabel(fig_item.axes[0].get_xlabel())
             axs[i].set_ylabel(fig_item.axes[0].get_ylabel())
             axs[i].grid(True)
+            fig_item.savefig(f'./graficos/individual_fig_{i}.png', dpi = 300, bbox_inches='tight')
             plt.close(fig_item)  
     
     plt.tight_layout()
