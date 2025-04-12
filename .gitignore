@@ -1,3 +1,6 @@
 *.csv
 */data
 *.png
+.idea
+./idea
+*.idea

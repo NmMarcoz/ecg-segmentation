@@ -7,13 +7,14 @@ import pandas as pd
 import numpy as np
 from matplotlib.backends.backend_pgf import PdfPages
 from datetime import datetime
+from scipy import signal as sg
 
 import detectionPeaks as dt
-import wfdb as wf
+#import wfdb as wf
 #import ecg_plot as ecg
 import matplotlib.pyplot as plt
 import matplotlib as mt
-mt.use("pdf")
+
 #plt.rcParams['pgf.texsystem'] = 'xelatex'
 
 #os.environ["PATH"] += os.pathsep + '/usr/local/texlive/2018/bin/x86_64-darwin'
@@ -38,10 +39,15 @@ lbda = 0.6
 lbdaP = 0.15
 thetaQRS = 0.15
 lbdaQRS = 0.15
+
+start_index = 0
+end_index = 0
+
 #---------------------pré processamento-----------------------#
 def min_max_scaling(signal):
     """Normalize a signal using min-max scaling."""
     return (signal - signal.min()) / (signal.max() - signal.min())
+
 def signal_extract(signal, window_size_percentage):
     window_size  = int(len(signal)*window_size_percentage)
     start_index = int(len(signal)/2) - window_size//2
@@ -54,18 +60,58 @@ def signal_mean(signal):
    signal_mean = signal_mean - signal_mean.mean()
    return signal_mean
 
-
 def signal_std(signal):
     signalPd = pd.Series(signal)
     signal_std = signalPd.std()
     normalized_signal = signalPd / signal_std
     return normalized_signal
 
-windowedSignal = signal_extract(signal, 0.01)
-signal_mean = signal_mean(windowedSignal)
+
+
+def bandpass_filter(signal, fs, lowcut=0.5, highcut=50.0, order=2):
+    """
+    Aplica um filtro passa-banda Butterworth ao sinal
+    
+    Parameters:
+    signal: array-like - Sinal de entrada
+    fs: float - Frequência de amostragem
+    lowcut: float - Frequência de corte inferior (Hz)
+    highcut: float - Frequência de corte superior (Hz)
+    order: int - Ordem do filtro
+    """
+    nyquist = 0.5 * fs
+    # Garante que as frequências normalizadas estejam entre 0 e 1
+    low = min(lowcut / nyquist, 0.99)
+    high = min(highcut / nyquist, 0.99)
+    
+    # Verifica se as frequências são válidas
+    if low >= high:
+        raise ValueError("lowcut deve ser menor que highcut")
+    if low <= 0:
+        low = 0.01
+        
+    b, a = sg.butter(order, [low, high], btype='band')
+    return sg.filtfilt(b, a, signal)
+
+windowedSignal = signal_extract(signal, 0.05)
+filtered_signal = bandpass_filter(windowedSignal, fs, lowcut=0.5, highcut=40.0, order=4)
+signal_mean = signal_mean(filtered_signal)
 signal_std = signal_std(signal_mean)
 final_signal = signal_std
 #print(final_signal)
+
+# Normalize both signals before SNR calculation
+originalSignal = min_max_scaling(np.array(signal[0:len(final_signal)]))
+filtredSignal = min_max_scaling(np.array(final_signal))
+noise = originalSignal - filtredSignal
+snr = 10 * np.log10(np.sum(filtredSignal**2) / np.sum(noise**2))
+
+signal_power = np.sum(filtredSignal**2)
+noise_power = np.sum(noise**2)
+print(f"Signal power: {signal_power}")
+print(f"Noise power: {noise_power}")
+print(f"Power ratio: {signal_power/noise_power}")
+print(f"SNR (dB): {snr}")
 
 peaks = dt.dtPeaks(final_signal, [0,60], fs, 0 )
 
@@ -138,7 +184,6 @@ def saveToPng(figs):
     # Plot each figure in its own subplot
     for i, fig_item in enumerate(figs):
         if isinstance(fig_item, plt.Figure):
-  
             data = fig_item.axes[0].lines[0].get_data()
             axs[i].plot(data[0], data[1])
             axs[i].set_title(fig_item.axes[0].get_title())
@@ -185,6 +230,10 @@ batimentos = plotSignal(B[0], "BATIMENTOS", 300)
 complexoQrs = plotSignal(QRS[0], "COMPLEXO QRS", 300)
 ondaT = plotSignal(T[0], "ONDA T", 300 )
 ondaP = plotSignal(P[0], "ONDA P", 300)
+
+
+
+print("snr", snr)
 
 saveToPng([signal,ecgProcessado, batimentos, complexoQrs, ondaT, ondaP])
 
