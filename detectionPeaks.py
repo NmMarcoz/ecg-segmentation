@@ -6,7 +6,7 @@ import scipy as sc
 
 
 #def dtPeaks(ecg,fs,gr,qrsAmpRaw,qrsIRaw,delay,method):
-def dtPeaks(ecg, min, fs, flagFigura):
+def dtPeaks(ecg, min, fs, flagFigura, debug = False):
     qrsC = []
     qrsI = []
     SIG_LEV = 0
@@ -83,8 +83,9 @@ def dtPeaks(ecg, min, fs, flagFigura):
     window_size = round(0.150*fs)
     ecgM = np.convolve(ecgS, np.ones(window_size)/round(0.150*fs))
     #print(ecgM)
-    print(len(ecgM))
-    print(len(ecgH))
+    if debug:
+        print(len(ecgM))
+        print(len(ecgH))
 
     data = sc.signal.find_peaks(ecgM, distance = round(0.2*fs))
     #data = sc.signal.find_peaks(ecgM, height=2)
@@ -96,10 +97,11 @@ def dtPeaks(ecg, min, fs, flagFigura):
     #locs = data[0]
 
     #pks = sc.signal.find_peaks(ecgM, round(0.2*fs))
-    print(f"pks: {pks}")
-    print(f"locs: {locs}" )
-    print(f"data: {data[0]}")
-    print(f"data: {data[1]}")
+    if debug:
+        print(f"pks: {pks}")
+        print(f"locs: {locs}" )
+        print(f"data: {data[0]}")
+        print(f"data: {data[1]}")
     sliceCut = int(2*fs)
     #thrSig = (np.max(ecgM[:sliceCut]))/3 #25% do sinal
     thrSig = np.max(ecgM[1:int(2*fs)]*1/3)
@@ -124,18 +126,20 @@ def dtPeaks(ecg, min, fs, flagFigura):
     y_i_t = 0
     x_i_t = 0
     pksTemp = 0
-    print(f"noiseLevel1: {noiseLevel1}")
-    print(f"thsig1: {thrSig1}")
+    if debug:
+        print(f"noiseLevel1: {noiseLevel1}")
+        print(f"thsig1: {thrSig1}")
 
     for i in range(len(locs)):
         #locate the corresponding peak in the filtered signal
-        print(f"thrnoise = {thrNoise}")
-        print(f"thsig1: {thrSig1}")
-        print(f"y_i: {y_i}")
-        print(f"locs[i]: {locs[i]}")
-        print(f"tamanho do ecgH: {len(ecgH)}")
+        if debug:
+            print(f"thrnoise = {thrNoise}")
+            print(f"thsig1: {thrSig1}")
+            print(f"y_i: {y_i}")
+            print(f"locs[i]: {locs[i]}")
+            print(f"tamanho do ecgH: {len(ecgH)}")
         if(locs[i]-round(0.150*fs) >=1) and locs[i]<=len(ecgH):
-            print("entrou na condição do locs i< ecgH")
+            if debug: print("entrou na condição do locs i< ecgH")
             y_i = np.max(ecgH[locs[i]-round(0.150*fs):locs[i]])
             x_i = np.argmax(ecgH[locs[i] - round(0.150*fs):locs[i]])
         else:
@@ -149,7 +153,7 @@ def dtPeaks(ecg, min, fs, flagFigura):
 
     #update the heart_rate (two heart rate mans one of the most recent and the other selected
         if(len(qrsC)>=9):
-            print("entrou no tamanho do qrsC >= 9")
+            if debug: print("entrou no tamanho do qrsC >= 9")
             diffRR = np.diff(qrsI[-8:]) #calculando o intervalo RR
             meanRR = np.mean(diffRR) ## média dos 8 números anteriores
             comp = qrsI[-1]-qrsI[-2] # Últimos RR
@@ -158,7 +162,7 @@ def dtPeaks(ecg, min, fs, flagFigura):
             # print(f"0.92 * meanRR: {meanRR*0.92}")
             # print(f"1.16 * meanRR: {meanRR*1.16}")
             if(comp <= 0.92*meanRR or comp >= 1.16*meanRR):
-                print("e deu update no thrSig * 0.5")
+                if debug: print("e deu update no thrSig * 0.5")
                 thrSig *= 0.5
                 #thrNoise = 0.5*(thrSig) # nao sei se isso aqui <- é pra ficar
                 thrSig1 *= 0.5
@@ -169,7 +173,7 @@ def dtPeaks(ecg, min, fs, flagFigura):
         #calculo da média das últimas 8 ondas R para ter certeza que o QRS
         # não está perdido
         if (mSelectedRR):
-            print("mselectedRR")
+            if debug: print("mselectedRR")
             testM = mSelectedRR
         elif (meanRR and mSelectedRR == 0):
             testM = meanRR
@@ -185,30 +189,31 @@ def dtPeaks(ecg, min, fs, flagFigura):
             # print(f"valor do y_i_t: {y_i_t}")
             # print(f"valor de pks[i]: {pks[i]}")
             if(locs[i] - qrsI[-1] >= round(1.66*testM)):
-                print("TO MALUCO")
+                if debug: print("TO MALUCO")
                 pksTemp= np.max(ecgM[qrsI[-1] + round(0.200*fs): locs[i] - round(0.200*fs)])
                 locsTemp = np.argmax(ecgM[qrsI[-1] + round(0.200*fs): locs[i] - round(0.200*fs)])
                 locsTemp = qrsI[-1] + round(0.200*fs) + locsTemp -1
-                print(f"y_i_t = {y_i_t}")
-                print(f"pksTemp: {pksTemp}")
-                print(f"thrNoise: {thrNoise}")
+                if debug:
+                    print(f"y_i_t = {y_i_t}")
+                    print(f"pksTemp: {pksTemp}")
+                    print(f"thrNoise: {thrNoise}")
                 if pksTemp > thrNoise:
-                    print("pksTemp > thrNoise")
+                    if debug: print("pksTemp > thrNoise")
                     #qrsC = [qrsC, pksTemp]
                     #qrsI = [qrsI, locsTemp]
                     qrsC = np.append(qrsC, pksTemp)
                     qrsI = np.append(qrsI, locsTemp)
 
                     if locsTemp <= len(ecgH):
-                        print("locs temp menor que ech")
+                        if debug: print("locs temp menor que ech")
                         y_i_t= np.max(ecgH[int(locsTemp - round(0.150*fs)):int(locsTemp)])
                         x_i_t = np.argmax(ecgH[int(locsTemp - round(0.150*fs)):int(locsTemp)])
                     else:
-                        print("locs maior que ech")
+                        if debug: print("locs maior que ech")
                         y_i_t = np.max(ecgH[locsTemp - round(0.150*fs): -1])
                         x_i_t = np.argmax(ecgH[locsTemp - round(0.150*fs): -1])
                 if y_i_t > thrNoise1:
-                    print("y_i_t > thrNoise")
+                    if debug: print("y_i_t > thrNoise")
                     #qrsIRaw = [qrsIRaw, locsTemp-round(0.150*fs) + (x_i_t -1)]
                     qrsIRaw.append(locsTemp - round(0.150*fs) + (x_i_t - 1))
                     qrsAmpRaw.append(y_i_t)
@@ -220,35 +225,37 @@ def dtPeaks(ecg, min, fs, flagFigura):
 
 
         ## Detectando ruído nos picos QRS
-        print(f"PKS I: {pks[i]}")
+        if debug: print(f"PKS I: {pks[i]}")
         if(pks[i] >= thrSig):
-            print("pks i maior que thrSig")
+            if debug: print("pks i maior que thrSig")
             #print(f"valor de y_i: {y_i}")
             if(len(qrsC)>=3):
-                print("SESSAO DO QRS C > 3")
-                print("len de qrsC maior que 3")
+                if debug:
+                    print("SESSAO DO QRS C > 3")
+                    print("len de qrsC maior que 3")
                 if(locs[i] - qrsI[-1]<= round(0.3600*fs)):
-                    print("locs i < qrsI CHECK")
+                    if debug: print("locs i < qrsI CHECK")
                     slope1 = np.mean(np.diff(ecgM[locs[i]-round(0.075*fs):locs[i]]))
                     slope2 = np.mean(np.diff(ecgM[qrsI[-1]-round(0.075*fs):qrsI[-1]]))
 
                     if np.abs(slope1)<= np.abs(0.5*slope2):
-                        print("ABS <= SLOPE2 CHECK")
+                        if debug: print("ABS <= SLOPE2 CHECK")
                         noisC.append(pks[i])
                         noisI.append(locs[i])
                         skip =1 # indentificação da onda T
 
                         noiseLevel1 *= 0.125*y_i + 0.875
-                        print(f"noiseLevel1 2nd vez: {noiseLevel1}")
+                        if debug: print(f"noiseLevel1 2nd vez: {noiseLevel1}")
                         noiseLevel = 0.125*pks[i] + 0.875*noiseLevel
-                        print(f"pks I: {pks[i]}")
+                        if debug: print(f"pks I: {pks[i]}")
                     else:
                         skip = 0
-            print("SESSAO TERMINADA")
-            print("----------------")
+            if debug:
+                print("SESSAO TERMINADA")
+                print("----------------")
             if skip == 0:
                 #qrsC = np.concatenate((qrsC, pks))
-                print("skipou")
+                if debug: print("skipou")
                 qrsC.append(pks[i])
                 qrsI.append(locs[i])
                 #qrsI = np.concatenate((qrsI, locs))
@@ -256,7 +263,7 @@ def dtPeaks(ecg, min, fs, flagFigura):
             #if np.all(y_i > thrSig):
 
             if y_i >= thrSig1:
-                print("Y_I MAIOR QUE TRHSIG")
+                if debug: print("Y_I MAIOR QUE TRHSIG")
                 if serBack:
                     qrsIRaw.append(x_i) #salvando o index do bandpass
                 else:
@@ -264,13 +271,13 @@ def dtPeaks(ecg, min, fs, flagFigura):
 
                 #qrsAmpRaw = [qrsAmpRaw, y_i]
                 qrsAmpRaw.append(y_i)
-                print(f"valor do qrsAmpRaw {qrsAmpRaw}")
+                if debug: print(f"valor do qrsAmpRaw {qrsAmpRaw}")
                 sigLevel1 = 0.125*y_i + 0.875*sigLevel1
 
             sigLevel = 0.125*pks[i] + 0.875*sigLevel
 
         elif (thrNoise <= pks[i] and pks[i] < thrSig):
-            print("ZUBUMAFU")
+            if debug: print("ZUBUMAFU")
             noiseLevel1 = 0.125*y_i + 0.875*noiseLevel1
             #print(f"noiseLevel1 terceira vez: {noiseLevel1}")
             noiseLevel = 0.125*pks[i] + 0.875*noiseLevel
@@ -284,17 +291,18 @@ def dtPeaks(ecg, min, fs, flagFigura):
             noiseLevel = 0.125*pks[i] + 0.875*noiseLevel
 
         if (noiseLevel != 0) or (sigLevel != 0):
-            print("ajustou thrnoise aqui")
-            print(f"thrnoise antes do ajuste {thrNoise}")
+            if debug:
+                print("ajustou thrnoise aqui")
+                print(f"thrnoise antes do ajuste {thrNoise}")
 
             thrSig = noiseLevel + 0.25*(np.abs(sigLevel - noiseLevel))
             thrNoise = 0.5*(thrSig)
-            print(f"thrnoise depois do ajuste {thrNoise}")
+            if debug: print(f"thrnoise depois do ajuste {thrNoise}")
             #print(f"tipo do noiselevel 1: {noiseLevel1}")
             #print(f"tipo do noiselevel : {noiseLevel}")
 
         if(noiseLevel1 != 0) or (sigLevel1 != 0):
-            print(".............")
+            if debug: print(".............")
             thrSig1 = noiseLevel1 + 0.25*(np.abs(sigLevel - noiseLevel1))
             thrNoise1 = 0.5*(thrSig1)
 

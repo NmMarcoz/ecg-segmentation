@@ -113,8 +113,9 @@ print(f"Noise power: {noise_power}")
 print(f"Power ratio: {signal_power/noise_power}")
 print(f"SNR (dB): {snr}")
 
+print("processando...")
 peaks = dt.dtPeaks(final_signal, [0,60], fs, 0 )
-
+print("processado!")
 ecgH = peaks[0]
 qrs_amplitude = peaks[1]
 qrs_index = peaks[2]
@@ -143,11 +144,11 @@ QRS = np.zeros((len(qrs_amplitude), round(thetaQRS * fs) + round(lbdaQRS * fs) +
 
 T = np.zeros((len(qrs_amplitude), round(0.3 * fs) + 1))
 
-print("qrs index", qrs_index[0])
+#print("qrs index", qrs_index[0])
 
 for i in range(len(qrs_amplitude)):
     #batimentos
-    print("qrs index", qrs_index[i])
+    #print("qrs index", qrs_index[i])
     B[i] = signal[qrs_index[i] - round(theta*fs):qrs_index[i] + round(lbda*fs)]
 
     start_P = qrs_index[i] - round(theta * fs)
@@ -231,9 +232,6 @@ complexoQrs = plotSignal(QRS[0], "COMPLEXO QRS", 300)
 ondaT = plotSignal(T[0], "ONDA T", 300 )
 ondaP = plotSignal(P[0], "ONDA P", 300)
 
-
-
-print("snr", snr)
 
 saveToPng([signal,ecgProcessado, batimentos, complexoQrs, ondaT, ondaP])
 
