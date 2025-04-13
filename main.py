@@ -146,35 +146,33 @@ if qrs_index[-1] > len(signal) - (0.6*fs):
     qrs_index[-1] = []
     qrs_amplitude[-1] = []
 # Batimentos
-B = np.zeros((len(qrs_amplitude), int(fs + 1)))
-
+# Batimentos
+B = np.zeros((len(qrs_amplitude), round(theta * fs) + round(lbda * fs) + 1))
 P = np.zeros((len(qrs_amplitude), round(lbdaP * fs) + 1))
-
 QRS = np.zeros((len(qrs_amplitude), round(thetaQRS * fs) + round(lbdaQRS * fs) + 1))
-
 T = np.zeros((len(qrs_amplitude), round(0.3 * fs) + 1))
 
-#print("qrs index", qrs_index[0])
-
-#segmentos
 for i in range(len(qrs_amplitude)):
-    #batimentos
-    #print("qrs index", qrs_index[i])
-    B[i] = signal[qrs_index[i] - round(theta*fs):qrs_index[i] + round(lbda*fs)]
+    # Batimentos
+    start_B = qrs_index[i] - round(theta * fs)
+    end_B = qrs_index[i] + round(lbda * fs)
+    B[i] = signal[start_B : end_B + 1]  # +1 para incluir o end_B
 
+    # Onda P
     start_P = qrs_index[i] - round(theta * fs)
     end_P = start_P + round(lbdaP * fs)
-    P[i] = signal[start_P:end_P + 1]
+    P[i] = signal[start_P : end_P + 1]
 
+    # Complexo QRS
     start_QRS = qrs_index[i] - round(thetaQRS * fs)
     end_QRS = qrs_index[i] + round(lbdaQRS * fs)
-    QRS[i] = signal[start_QRS:end_QRS + 1]
+    QRS[i] = signal[start_QRS : end_QRS + 1]
 
     # Onda T
     start_T = (qrs_index[i] + round(lbda * fs)) - round(0.3 * fs)
     end_T = qrs_index[i] + round(lbda * fs)
-    T[i] = signal[start_T:end_T + 1]
-#---------------------------------------------------------------#
+    T[i] = signal[start_T : end_T + 1]
+
 B = B.T
 P = P.T
 QRS = QRS.T
