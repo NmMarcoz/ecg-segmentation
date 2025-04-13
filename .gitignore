@@ -9,3 +9,5 @@
 **.hea
 *.hea
 *.dat
+
+/__pycache__
