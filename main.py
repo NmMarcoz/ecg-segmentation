@@ -16,25 +16,30 @@ import detectionPeaks as dt
 import matplotlib.pyplot as plt
 import matplotlib as mt
 
-sampleMap = {
+sampleFsMap = {
     "FA": 256,
     "SINUS": 256
 }
+sampleMap = {
+    "FA": "04015",
+    "SINUS": "16265"
+}
 
-WINDOW_SIZE = 12000
+WINDOW_SIZE = 8000
 CURRENT_SAMPLE = "FA"
+#record = wf.rdsamp('16265')
+# record = wf.rdsamp("04015")
+# df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
+# #df.to_csv('16265.csv')
+# df.to_csv("04015.csv")
+df_csv = pd.read_csv(f'./data/{sampleMap.get(CURRENT_SAMPLE)}.csv')
 
 #plt.rcParams['pgf.texsystem'] = 'xelatex'
 
 #os.environ["PATH"] += os.pathsep + '/usr/local/texlive/2018/bin/x86_64-darwin'
 print("recursion limite", sys.getrecursionlimit())
 
-#record = wf.rdsamp('16265')
-# record = wf.rdsamp("04015")
-# df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
-# #df.to_csv('16265.csv')
-# df.to_csv("04015.csv")
-df_csv = pd.read_csv('./data/04015.csv')
+
 
 signal = df_csv._get_label_or_level_values('ECG1').tolist()
 signalY = df_csv._get_label_or_level_values('ECG2').tolist()
@@ -42,7 +47,7 @@ signalY = df_csv._get_label_or_level_values('ECG2').tolist()
 signalXY = [signal, signalY]
 #signal = signal[5000:100000]
 #fs = round(81*0.7,2)
-fs = sampleMap.get(CURRENT_SAMPLE)
+fs = sampleFsMap.get(CURRENT_SAMPLE)
 detectors = Detectors(fs)
 #fs = round(20*0.2, 2)
 print(f"fs: {fs}")
