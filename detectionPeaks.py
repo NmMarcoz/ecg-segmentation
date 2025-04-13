@@ -68,11 +68,11 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
         f1Normal = f1 / (fs/2)
         f2Normal = f2 / (fs/2)
 
-        b,a = sc.signal.butter(2,[f1Normal,f2Normal], "bandpass")
+        b, a = sc.signal.butter(2, [5, 15], btype='bandpass', fs=fs)
         #b = sc.signal.butter(2,[f1Normal,f2Normal], "bandpass")
        # b,a = sc.signal.ellip(3,1,20,[f1,f2]/(fs/2))
         ecgH = sc.signal.lfilter(b,a, ecg)
-        ecgH = ecgH/ np.max(np.abs(ecgH))
+        ecgH = ecgH / np.max(np.abs(ecgH))
 
     hD = np.array([-1,-2,0,2,1])
     hD = hD/8
@@ -80,8 +80,9 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
     ecgD = ecgD/np.max(ecgD)
 
     ecgS = ecgD**2
-    window_size = round(0.150*fs)
-    ecgM = np.convolve(ecgS, np.ones(window_size)/round(0.150*fs))
+    window_size = int(round(0.150 * fs))
+    ecgM = np.convolve(ecgS, np.ones(window_size)/window_size)
+    #ecgM = np.convolve(ecgS, np.ones(window_size)/round(0.150*fs))
     #print(ecgM)
     if debug:
         print(len(ecgM))
@@ -92,6 +93,7 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
     #pks = PICOS
     #pks = sc.signal.find_peaks(ecgM, distance =round(0.2*fs))[0]
     locs = sc.signal.find_peaks(ecgM, distance = round(0.2*fs))[0]
+    print("tipo do locs 1", type(locs[0]))
     pks = ecgM[locs]
 
     #locs = data[0]
@@ -104,8 +106,8 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
         print(f"data: {data[1]}")
     sliceCut = int(2*fs)
     #thrSig = (np.max(ecgM[:sliceCut]))/3 #25% do sinal
-    thrSig = np.max(ecgM[1:int(2*fs)]*1/3)
-    thrNoise = np.mean(ecgM[:int(2*fs)]*0.5)
+    thrSig = np.max(ecgM[:int(2*fs)]) * 1/3  # MATLAB: max(ecg_m(1:2*Fs))
+    thrNoise = np.mean(ecgM[:int(2*fs)]) * 1/2  # MATLAB: mean(ecg_m(1:2*Fs))
     #thrNoise = (np.mean(ecgM[:sliceCut]))/2
     sigLevel = thrSig
     noiseLevel = thrNoise
@@ -179,19 +181,11 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
             testM = meanRR
         else:
             testM = 0
-
         if (testM):
-            # print(f"teste M: {testM}")
-            # print(f"qrsI : {qrsI}")
-            # print(f"pksTemp : {pksTemp}")
-            # print(f"valor de thrNoise : {thrNoise}")
-            # print(f"valor de thrSig: {thrSig}")
-            # print(f"valor do y_i_t: {y_i_t}")
-            # print(f"valor de pks[i]: {pks[i]}")
             if(locs[i] - qrsI[-1] >= round(1.66*testM)):
                 if debug: print("TO MALUCO")
-                pksTemp= np.max(ecgM[qrsI[-1] + round(0.200*fs): locs[i] - round(0.200*fs)])
-                locsTemp = np.argmax(ecgM[qrsI[-1] + round(0.200*fs): locs[i] - round(0.200*fs)])
+                pksTemp= np.max(ecgM[int(qrsI[-1] + round(0.200*fs)): int(locs[i] - round(0.200*fs))])
+                locsTemp = np.argmax(ecgM[int(qrsI[-1] + round(0.200*fs)): int(locs[i] - round(0.200*fs))])
                 locsTemp = qrsI[-1] + round(0.200*fs) + locsTemp -1
                 if debug:
                     print(f"y_i_t = {y_i_t}")
@@ -201,8 +195,10 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
                     if debug: print("pksTemp > thrNoise")
                     #qrsC = [qrsC, pksTemp]
                     #qrsI = [qrsI, locsTemp]
-                    qrsC = np.append(qrsC, pksTemp)
-                    qrsI = np.append(qrsI, locsTemp)
+                    qrsC.append(pksTemp)
+                    qrsI.append(int(locsTemp))
+                    #qrsC = np.append(qrsC, pksTemp)
+                    #qrsI = np.append(qrsI, locsTemp)
 
                     if locsTemp <= len(ecgH):
                         if debug: print("locs temp menor que ech")
@@ -228,15 +224,19 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
         if debug: print(f"PKS I: {pks[i]}")
         if(pks[i] >= thrSig):
             if debug: print("pks i maior que thrSig")
+       
             #print(f"valor de y_i: {y_i}")
             if(len(qrsC)>=3):
                 if debug:
                     print("SESSAO DO QRS C > 3")
                     print("len de qrsC maior que 3")
-                if(locs[i] - qrsI[-1]<= round(0.3600*fs)):
+                #start_idx = int(qrsI[-1] + round(0.3600 * fs))
+                #end_idx = int(locs[i] - round(0.3600 * fs))
+                if(locs[i] - qrsI[-1] <= round(0.3600*fs)):
+                #if(end_idx < start_idx):
                     if debug: print("locs i < qrsI CHECK")
-                    slope1 = np.mean(np.diff(ecgM[locs[i]-round(0.075*fs):locs[i]]))
-                    slope2 = np.mean(np.diff(ecgM[qrsI[-1]-round(0.075*fs):qrsI[-1]]))
+                    slope1 = np.mean(np.diff(ecgM[int(locs[i] - round(0.075*fs)) : int(locs[i])]))
+                    slope2 = np.mean(np.diff(ecgM[int(qrsI[-1] - round(0.075*fs)) : int(qrsI[-1])]))
 
                     if np.abs(slope1)<= np.abs(0.5*slope2):
                         if debug: print("ABS <= SLOPE2 CHECK")
@@ -244,7 +244,7 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
                         noisI.append(locs[i])
                         skip =1 # indentificação da onda T
 
-                        noiseLevel1 *= 0.125*y_i + 0.875
+                        noiseLevel1 = (0.125*y_i + 0.875)*noiseLevel1
                         if debug: print(f"noiseLevel1 2nd vez: {noiseLevel1}")
                         noiseLevel = 0.125*pks[i] + 0.875*noiseLevel
                         if debug: print(f"pks I: {pks[i]}")
@@ -256,8 +256,10 @@ def dtPeaks(ecg, min, fs, flagFigura, debug = False):
             if skip == 0:
                 #qrsC = np.concatenate((qrsC, pks))
                 if debug: print("skipou")
-                qrsC.append(pks[i])
-                qrsI.append(locs[i])
+                qrsC.append(pks[i]) 
+                #np.append(qrsC, pks[i])
+                qrsI.append(int(locs[i])) 
+                #np.append(qrsI,locs[i])
                 #qrsI = np.concatenate((qrsI, locs))
 
             #if np.all(y_i > thrSig):

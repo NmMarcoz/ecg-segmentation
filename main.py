@@ -9,14 +9,20 @@ from matplotlib.backends.backend_pgf import PdfPages
 from datetime import datetime
 from scipy import signal as sg
 import time  # Importa o módulo time
-
+from ecgdetectors import Detectors
 import detectionPeaks as dt
 #import wfdb as wf
 #import ecg_plot as ecg
 import matplotlib.pyplot as plt
 import matplotlib as mt
 
-WINDOW_SIZE = 7000
+sampleMap = {
+    "FA": 256,
+    "SINUS": 256
+}
+
+WINDOW_SIZE = 12000
+CURRENT_SAMPLE = "FA"
 
 #plt.rcParams['pgf.texsystem'] = 'xelatex'
 
@@ -35,7 +41,9 @@ signalY = df_csv._get_label_or_level_values('ECG2').tolist()
 
 signalXY = [signal, signalY]
 #signal = signal[5000:100000]
-fs = round(81*0.7,2)
+#fs = round(81*0.7,2)
+fs = sampleMap.get(CURRENT_SAMPLE)
+detectors = Detectors(fs)
 #fs = round(20*0.2, 2)
 print(f"fs: {fs}")
 theta = 0.4
@@ -130,7 +138,7 @@ print("processado!")
 # Calcula o tempo de execução
 execution_time = end_time - start_time
 print(f"Tempo de execução da função dtPeaks: {execution_time:.4f} segundos")
-
+#rr_peaks = detectors.pan_tompkins_detector(final_signal)
 ecgH = peaks[0]
 qrs_amplitude = peaks[1]
 qrs_index = peaks[2]
@@ -191,6 +199,14 @@ T = T.T
 timeAxis = np.arange(len(peaks[0])) / fs
 timeAxisNormalSignal = np.arange(len(signal))/fs
 
+def saveIndivualsToPng(figs):
+    date = datetime.today().isoformat(timespec='seconds')
+    for i, fig_item in enumerate(figs):
+        if isinstance(fig_item, plt.Figure):
+            data = fig_item.axes[0].lines[0].get_data()
+            fig_item.savefig(f'./graficos/{CURRENT_SAMPLE}/individual_fig_{i}.png', dpi = 300, bbox_inches = 'tight')
+        plt.tight_layout()
+        plt.close()
 
 def saveToPng(figs):
     date = datetime.today().isoformat(timespec='seconds')
@@ -207,12 +223,12 @@ def saveToPng(figs):
             axs[i].set_xlabel(fig_item.axes[0].get_xlabel())
             axs[i].set_ylabel(fig_item.axes[0].get_ylabel())
             axs[i].grid(True)
-            fig_item.savefig(f'./graficos/individual_fig_{i}.png', dpi = 300, bbox_inches='tight')
+            #fig_item.savefig(f'./graficos/{CURRENT_SAMPLE}/individual_fig_{i}.png', dpi = 300, bbox_inches='tight')
             plt.close(fig_item)  
     
     plt.tight_layout()
     
-    plt.savefig(f'./graficos/ecg_analysis_{date}.png', dpi=300, bbox_inches='tight')
+    plt.savefig(f'./graficos/{CURRENT_SAMPLE}/ecg_analysis_{date}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
 
@@ -226,7 +242,7 @@ def plotSignal(signal, title, reduce = 0, invert = False):
     else:
         timeAxis = np.arange(len(signal)) / fs
     plot = plt.figure(figsize=(10, 6))
-    plt.subplot(2,1,1)
+    
     # plt.plot(timeAxis, signal)
     if(invert):
         plt.plot(signal, timeAxis)
@@ -288,8 +304,9 @@ def plot_ecg_segments(B, P, QRS, T, fs):
 
 #
 #
-signal = plotSignal(signal, "SINAL (ORIGINAL)", 500)
-final_signal_figure = plotSignal(final_signal, "SINAL (FILTRADO)", 500)
+#rr_peaks_figure = plotSignal(signal[0:3000], "PICOS RR")
+signal_figure = plotSignal(signal, "SINAL (ORIGINAL)", 500)
+final_signal_figure = plotSignal(final_signal, "SINAL (PRE PROCESSADO)", 500)
 ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 500)
 #batimentos = plotSignal(B[0], "BATIMENTOS", 300)
 complexoQrs = plotSignal(QRS, "COMPLEXO QRS", WINDOW_SIZE)
@@ -297,13 +314,13 @@ ondaT = plotSignal(T, "ONDA T", WINDOW_SIZE)
 ondaP = plotSignal(P, "ONDA P", WINDOW_SIZE)
 
 
-#saveToPng([signal, final_signal_figure, ecgProcessado, complexoQrs, ondaT, ondaP])
-saveToPng([signal, final_signal_figure, ecgProcessado])
+saveIndivualsToPng([signal_figure, final_signal_figure, ecgProcessado, complexoQrs, ondaT, ondaP])
+saveToPng([signal_figure, final_signal_figure, ecgProcessado])
 #plot_segments(B, P, QRS, T, fs)
 
 
 # Uso:
 fig = plot_ecg_segments(B[0:WINDOW_SIZE], P[0:WINDOW_SIZE], QRS[0:WINDOW_SIZE], T[0:WINDOW_SIZE], fs)
-plt.savefig(f'./graficos/ecg_segments{datetime.now()}.png', dpi=300, bbox_inches='tight')
+plt.savefig(f'./graficos/{CURRENT_SAMPLE}/ecg_segments{datetime.now()}.png', dpi=300, bbox_inches='tight')
 plt.close()
 

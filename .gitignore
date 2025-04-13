@@ -4,3 +4,8 @@
 .idea
 ./idea
 *.idea
+
+**.dat
+**.hea
+*.hea
+*.dat
