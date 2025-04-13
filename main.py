@@ -8,6 +8,7 @@ import numpy as np
 from matplotlib.backends.backend_pgf import PdfPages
 from datetime import datetime
 from scipy import signal as sg
+import time  # Importa o módulo time
 
 import detectionPeaks as dt
 #import wfdb as wf
@@ -114,8 +115,15 @@ print(f"Power ratio: {signal_power/noise_power}")
 print(f"SNR (dB): {snr}")
 
 print("processando...")
-peaks = dt.dtPeaks(final_signal, [0,60], fs, 0 )
+start_time = time.time()  # Marca o início do tempo
+peaks = dt.dtPeaks(final_signal, [0,60], fs, 0)
+end_time = time.time()  # Marca o fim do tempo
 print("processado!")
+
+# Calcula o tempo de execução
+execution_time = end_time - start_time
+print(f"Tempo de execução da função dtPeaks: {execution_time:.4f} segundos")
+
 ecgH = peaks[0]
 qrs_amplitude = peaks[1]
 qrs_index = peaks[2]
@@ -146,6 +154,7 @@ T = np.zeros((len(qrs_amplitude), round(0.3 * fs) + 1))
 
 #print("qrs index", qrs_index[0])
 
+#segmentos
 for i in range(len(qrs_amplitude)):
     #batimentos
     #print("qrs index", qrs_index[i])
@@ -225,13 +234,68 @@ def plotSignal(signal, title, reduce = 0, invert = False):
     return plot
 
 #
-signal = plotSignal(signal, "SINAL COMPLETO (SUJO)", 500)
-ecgProcessado = plotSignal(ecgH, "SINAL COMPLETO (LIMPO)", 500)
-batimentos = plotSignal(B[0], "BATIMENTOS", 300)
-complexoQrs = plotSignal(QRS[0], "COMPLEXO QRS", 300)
-ondaT = plotSignal(T[0], "ONDA T", 300 )
-ondaP = plotSignal(P[0], "ONDA P", 300)
+#
+signal = plotSignal(signal, "SINAL (ORIGINAL)", 500)
+final_signal = plotSignal(final_signal, "SINAL (FILTRADO)", 500)
+ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 500)
+#batimentos = plotSignal(B[0], "BATIMENTOS", 300)
+complexoQrs = plotSignal(QRS, "COMPLEXO QRS")
+ondaT = plotSignal(T, "ONDA T")
+ondaP = plotSignal(P, "ONDA P")
 
 
-saveToPng([signal,ecgProcessado, batimentos, complexoQrs, ondaT, ondaP])
+saveToPng([signal, final_signal, ecgProcessado, complexoQrs, ondaT, ondaP])
+#plot_segments(B, P, QRS, T, fs)
+
+def plot_ecg_segments(B, P, QRS, T, fs):
+    nf = 16
+    fig = plt.figure(figsize=(15, 10))
+    
+    # Plot dos batimentos
+    ax1 = plt.subplot(2,1,1)
+    for i in range(B.shape[1]):  # Plot cada batimento
+        ax1.plot(np.arange(len(B[:,i]))/fs, B[:,i], 'b-', alpha=0.1)
+    ax1.plot(np.arange(len(B[:,0]))/fs, np.mean(B, axis=1), 'r-', linewidth=2)  # Média
+    ax1.set_xlabel('Time (s)', fontsize=nf)
+    ax1.set_ylabel('Amplitude (mV)', fontsize=nf)
+    ax1.set_title('Heartbeats', fontsize=nf)
+    ax1.grid(True)
+    
+    # Plot da onda P
+    ax2 = plt.subplot(2,3,4)
+    for i in range(P.shape[1]):
+        ax2.plot(np.arange(len(P[:,i]))/fs, P[:,i], 'b-', alpha=0.1)
+    ax2.plot(np.arange(len(P[:,0]))/fs, np.mean(P, axis=1), 'r-', linewidth=2)
+    ax2.set_xlabel('Time (s)', fontsize=nf)
+    ax2.set_ylabel('Amplitude (mV)', fontsize=nf)
+    ax2.set_title('P Wave', fontsize=nf)
+    ax2.grid(True)
+    
+    # Plot do complexo QRS
+    ax3 = plt.subplot(2,3,5)
+    for i in range(QRS.shape[1]):
+        ax3.plot(np.arange(len(QRS[:,i]))/fs, QRS[:,i], 'b-', alpha=0.1)
+    ax3.plot(np.arange(len(QRS[:,0]))/fs, np.mean(QRS, axis=1), 'r-', linewidth=2)
+    ax3.set_xlabel('Time (s)', fontsize=nf)
+    ax3.set_ylabel('Amplitude (mV)', fontsize=nf)
+    ax3.set_title('QRS Complex', fontsize=nf)
+    ax3.grid(True)
+    
+    # Plot da onda T
+    ax4 = plt.subplot(2,3,6)
+    for i in range(T.shape[1]):
+        ax4.plot(np.arange(len(T[:,i]))/fs, T[:,i], 'b-', alpha=0.1)
+    ax4.plot(np.arange(len(T[:,0]))/fs, np.mean(T, axis=1), 'r-', linewidth=2)
+    ax4.set_xlabel('Time (s)', fontsize=nf)
+    ax4.set_ylabel('Amplitude (mV)', fontsize=nf)
+    ax4.set_title('T Wave', fontsize=nf)
+    ax4.grid(True)
+    
+    plt.tight_layout()
+    return fig
+
+# Uso:
+fig = plot_ecg_segments(B, P, QRS, T, fs)
+plt.savefig('./graficos/ecg_segments.png', dpi=300, bbox_inches='tight')
+plt.close()
 
