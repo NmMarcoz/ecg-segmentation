@@ -62,10 +62,8 @@ def signal_mean(signal):
    return signal_mean
 
 def signal_std(signal):
-    signalPd = pd.Series(signal)
-    signal_std = signalPd.std()
-    normalized_signal = signalPd / signal_std
-    return normalized_signal
+    """Normaliza o sinal dividindo pelo desvio padrão."""
+    return np.array(signal) / np.std(signal)
 
 
 
@@ -94,25 +92,28 @@ def bandpass_filter(signal, fs, lowcut=0.5, highcut=50.0, order=2):
     b, a = sg.butter(order, [low, high], btype='band')
     return sg.filtfilt(b, a, signal)
 
-windowedSignal = signal_extract(signal, 0.05)
-filtered_signal = bandpass_filter(windowedSignal, fs, lowcut=0.5, highcut=40.0, order=4)
-signal_mean = signal_mean(filtered_signal)
+def getSnr (noise, signal, title):
+    originalNoise = min_max_scaling(np.array(noise[0:len(signal)]))
+    filtredSignal = min_max_scaling(np.array(signal))
+    noise = originalNoise - filtredSignal
+    snr = 10 * np.log10(np.sum(filtredSignal**2) / np.sum(noise**2))
+    signal_power = np.sum(filtredSignal**2)
+    noise_power = np.sum(noise**2)
+    print(f"Signal power: {signal_power}")
+    print(f"Noise power: {noise_power}")
+    print(f"Power ratio: {signal_power/noise_power}")
+    print(f"SNR (dB) {title}: {snr}")
+
+
+windowedSignal = signal_extract(signal, 0.01)
+#filtered_signal = bandpass_filter(windowedSignal, fs, lowcut=0.5, highcut=40.0, order=4)
+signal_mean = signal_mean(windowedSignal)
 signal_std = signal_std(signal_mean)
 final_signal = signal_std
 #print(final_signal)
 
 # Normalize both signals before SNR calculation
-originalSignal = min_max_scaling(np.array(signal[0:len(final_signal)]))
-filtredSignal = min_max_scaling(np.array(final_signal))
-noise = originalSignal - filtredSignal
-snr = 10 * np.log10(np.sum(filtredSignal**2) / np.sum(noise**2))
-
-signal_power = np.sum(filtredSignal**2)
-noise_power = np.sum(noise**2)
-print(f"Signal power: {signal_power}")
-print(f"Noise power: {noise_power}")
-print(f"Power ratio: {signal_power/noise_power}")
-print(f"SNR (dB): {snr}")
+getSnr(signal, final_signal, "pré processamento")
 
 print("processando...")
 start_time = time.time()  # Marca o início do tempo
@@ -130,11 +131,12 @@ qrs_index = peaks[2]
 delay = peaks[3]
 peaks_array = pd.array(peaks[0], int)
 
+getSnr(final_signal, ecgH, "processado")
+
 #print(f"qrsIndex: {qrs_index}")
 #print(f"qrsamplitude: {qrs_amplitude}")
 #print(qrs_amplitude)
 
-#TODO -> tenho que fazer essa parte do ciclo, e da segmentação.
 #-------------------------CICLO-----------------------------------#
 if qrs_index[1] < theta  *fs:
     qrs_index[1] = []
@@ -212,10 +214,11 @@ def saveToPng(figs):
 
 def plotSignal(signal, title, reduce = 0, invert = False):
 
+
     timeAxis = []
     if(reduce != 0):
         signal = signal[0:reduce]
-        timeAxis = np.arange(reduce) / fs
+        timeAxis = np.arange(len(signal)) / fs
     else:
         timeAxis = np.arange(len(signal)) / fs
     plot = plt.figure(figsize=(10, 6))
@@ -226,12 +229,58 @@ def plotSignal(signal, title, reduce = 0, invert = False):
     else:
         plt.plot(timeAxis,signal)
     # plt.plot(timeAxisNormalSignal, signal)
-    plt.xlabel('Tempo (s)')
-    plt.ylabel('Sinal')
+    plt.xlabel('Amostra')
+    plt.ylabel('Sinal (mv)')
     plt.title(title)
     plt.grid(True)  # Add a grid for better readability
     #plt.show()
     return plot
+
+def plot_ecg_segments(B, P, QRS, T, fs):
+    nf = 16
+    fig = plt.figure(figsize=(15, 10))
+    
+    # Configurações gerais
+    plt.rcParams.update({'font.size': nf})
+    
+    # Full beats plot (top)
+    ax1 = plt.subplot(2,1,1)
+    for beat in B.T:  # Plotar cada batimento separadamente
+        ax1.plot(beat, linewidth=1)
+    ax1.set_xlabel('Samples', fontsize=nf)
+    ax1.set_ylabel('mV', fontsize=nf)
+    ax1.set_title('Healthy beats (50000)', fontsize=nf)
+    ax1.tick_params(labelsize=nf)
+    
+    # P wave plot
+    ax2 = plt.subplot(2,3,4)
+    for p_wave in P.T:
+        ax2.plot(p_wave, linewidth=1)
+    ax2.set_xlabel('Samples', fontsize=nf)
+    ax2.set_ylabel('mV', fontsize=nf)
+    ax2.set_title('P waves (50000)', fontsize=nf)
+    ax2.tick_params(labelsize=nf)
+    
+    # QRS complex plot
+    ax3 = plt.subplot(2,3,5)
+    for qrs in QRS.T:
+        ax3.plot(qrs, linewidth=1)
+    ax3.set_xlabel('Samples', fontsize=nf)
+    ax3.set_ylabel('mV', fontsize=nf)
+    ax3.set_title('QRS complexes (50000)', fontsize=nf)
+    ax3.tick_params(labelsize=nf)
+    
+    # T wave plot
+    ax4 = plt.subplot(2,3,6)
+    for t_wave in T.T:
+        ax4.plot(t_wave, linewidth=1)
+    ax4.set_xlabel('Samples', fontsize=nf)
+    ax4.set_ylabel('mV', fontsize=nf)
+    ax4.set_title('T waves (50000)', fontsize=nf)
+    ax4.tick_params(labelsize=nf)
+    
+    plt.tight_layout()
+    return fig
 
 #
 #
@@ -240,62 +289,16 @@ final_signal = plotSignal(final_signal, "SINAL (FILTRADO)", 500)
 ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 500)
 #batimentos = plotSignal(B[0], "BATIMENTOS", 300)
 complexoQrs = plotSignal(QRS, "COMPLEXO QRS")
-ondaT = plotSignal(T, "ONDA T")
-ondaP = plotSignal(P, "ONDA P")
+ondaT = plotSignal(T, "ONDA T", 100)
+ondaP = plotSignal(P, "ONDA P", 100)
 
 
 saveToPng([signal, final_signal, ecgProcessado, complexoQrs, ondaT, ondaP])
 #plot_segments(B, P, QRS, T, fs)
 
-def plot_ecg_segments(B, P, QRS, T, fs):
-    nf = 16
-    fig = plt.figure(figsize=(15, 10))
-    
-    # Plot dos batimentos
-    ax1 = plt.subplot(2,1,1)
-    for i in range(B.shape[1]):  # Plot cada batimento
-        ax1.plot(np.arange(len(B[:,i]))/fs, B[:,i], 'b-', alpha=0.1)
-    ax1.plot(np.arange(len(B[:,0]))/fs, np.mean(B, axis=1), 'r-', linewidth=2)  # Média
-    ax1.set_xlabel('Time (s)', fontsize=nf)
-    ax1.set_ylabel('Amplitude (mV)', fontsize=nf)
-    ax1.set_title('Heartbeats', fontsize=nf)
-    ax1.grid(True)
-    
-    # Plot da onda P
-    ax2 = plt.subplot(2,3,4)
-    for i in range(P.shape[1]):
-        ax2.plot(np.arange(len(P[:,i]))/fs, P[:,i], 'b-', alpha=0.1)
-    ax2.plot(np.arange(len(P[:,0]))/fs, np.mean(P, axis=1), 'r-', linewidth=2)
-    ax2.set_xlabel('Time (s)', fontsize=nf)
-    ax2.set_ylabel('Amplitude (mV)', fontsize=nf)
-    ax2.set_title('P Wave', fontsize=nf)
-    ax2.grid(True)
-    
-    # Plot do complexo QRS
-    ax3 = plt.subplot(2,3,5)
-    for i in range(QRS.shape[1]):
-        ax3.plot(np.arange(len(QRS[:,i]))/fs, QRS[:,i], 'b-', alpha=0.1)
-    ax3.plot(np.arange(len(QRS[:,0]))/fs, np.mean(QRS, axis=1), 'r-', linewidth=2)
-    ax3.set_xlabel('Time (s)', fontsize=nf)
-    ax3.set_ylabel('Amplitude (mV)', fontsize=nf)
-    ax3.set_title('QRS Complex', fontsize=nf)
-    ax3.grid(True)
-    
-    # Plot da onda T
-    ax4 = plt.subplot(2,3,6)
-    for i in range(T.shape[1]):
-        ax4.plot(np.arange(len(T[:,i]))/fs, T[:,i], 'b-', alpha=0.1)
-    ax4.plot(np.arange(len(T[:,0]))/fs, np.mean(T, axis=1), 'r-', linewidth=2)
-    ax4.set_xlabel('Time (s)', fontsize=nf)
-    ax4.set_ylabel('Amplitude (mV)', fontsize=nf)
-    ax4.set_title('T Wave', fontsize=nf)
-    ax4.grid(True)
-    
-    plt.tight_layout()
-    return fig
 
 # Uso:
-fig = plot_ecg_segments(B, P, QRS, T, fs)
-plt.savefig('./graficos/ecg_segments.png', dpi=300, bbox_inches='tight')
+fig = plot_ecg_segments(B[0:8], P[0:8], QRS[0:8], T[0:8], fs)
+plt.savefig(f'./graficos/ecg_segments{datetime.now()}.png', dpi=300, bbox_inches='tight')
 plt.close()
 
