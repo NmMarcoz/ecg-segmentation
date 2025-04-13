@@ -16,16 +16,19 @@ import detectionPeaks as dt
 import matplotlib.pyplot as plt
 import matplotlib as mt
 
+WINDOW_SIZE = 7000
+
 #plt.rcParams['pgf.texsystem'] = 'xelatex'
 
 #os.environ["PATH"] += os.pathsep + '/usr/local/texlive/2018/bin/x86_64-darwin'
 print("recursion limite", sys.getrecursionlimit())
 
-# record = wf.rdsamp('16265')
+#record = wf.rdsamp('16265')
+# record = wf.rdsamp("04015")
 # df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
-# df.to_csv('16265.csv')RuntimeError: 'xelatex' not found; install it or change rcParams['pgf.texsystem'] to an available TeX implementation
-
-df_csv = pd.read_csv('./data/16265.csv')
+# #df.to_csv('16265.csv')
+# df.to_csv("04015.csv")
+df_csv = pd.read_csv('./data/04015.csv')
 
 signal = df_csv._get_label_or_level_values('ECG1').tolist()
 signalY = df_csv._get_label_or_level_values('ECG2').tolist()
@@ -107,12 +110,12 @@ def getSnr (noise, signal, title):
 
 start = int(round(len(signal) * 0.01))
 end = len(signal) - int(round(len(signal) * 0.01))
-windowedSignal = signal[start:end]
+windowedSignal = signal[start:end] #tira 1% do começo e do fim
 #filtered_signal = bandpass_filter(windowedSignal, fs, lowcut=0.5, highcut=40.0, order=4)
 signal_mean = signal_mean(windowedSignal)
-signal_std = signal_std(signal_mean)
-#final_signal =  ((windowedSignal - np.mean(windowedSignal)) / np.std(windowedSignal))
-final_signal = signal_std
+#signal_std = signal_std(signal_mean)
+final_signal =  ((windowedSignal - np.mean(windowedSignal)) / np.std(windowedSignal))
+#final_signal = signal_std
 #print(final_signal)
 
 # Normalize both signals before SNR calculation
@@ -120,7 +123,7 @@ getSnr(signal, final_signal, "pré processamento")
 
 print("processando...")
 start_time = time.time()  # Marca o início do tempo
-peaks = dt.dtPeaks(final_signal[0:3000], [0,60], fs, 0)
+peaks = dt.dtPeaks(final_signal[0:WINDOW_SIZE], [0,60], fs, 0)
 end_time = time.time()  # Marca o fim do tempo
 print("processado!")
 
@@ -192,7 +195,7 @@ timeAxisNormalSignal = np.arange(len(signal))/fs
 def saveToPng(figs):
     date = datetime.today().isoformat(timespec='seconds')
 
-    fig, axs = plt.subplots(2, 3, figsize=(15, 10))
+    fig, axs = plt.subplots(2, 2, figsize=(15, 5))
     axs = axs.ravel()  
     
     # Plot each figure in its own subplot
@@ -209,7 +212,6 @@ def saveToPng(figs):
     
     plt.tight_layout()
     
-
     plt.savefig(f'./graficos/ecg_analysis_{date}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -286,21 +288,22 @@ def plot_ecg_segments(B, P, QRS, T, fs):
 
 #
 #
-signal = plotSignal(signal, "SINAL (ORIGINAL)", 1000)
-final_signal = plotSignal(final_signal, "SINAL (FILTRADO)", 1000)
-ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 1000)
+signal = plotSignal(signal, "SINAL (ORIGINAL)", 500)
+final_signal_figure = plotSignal(final_signal, "SINAL (FILTRADO)", 500)
+ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 500)
 #batimentos = plotSignal(B[0], "BATIMENTOS", 300)
-complexoQrs = plotSignal(QRS, "COMPLEXO QRS", 1000)
-ondaT = plotSignal(T, "ONDA T", 1000)
-ondaP = plotSignal(P, "ONDA P", 1000)
+complexoQrs = plotSignal(QRS, "COMPLEXO QRS", WINDOW_SIZE)
+ondaT = plotSignal(T, "ONDA T", WINDOW_SIZE)
+ondaP = plotSignal(P, "ONDA P", WINDOW_SIZE)
 
 
-saveToPng([signal, final_signal, ecgProcessado, complexoQrs, ondaT, ondaP])
+#saveToPng([signal, final_signal_figure, ecgProcessado, complexoQrs, ondaT, ondaP])
+saveToPng([signal, final_signal_figure, ecgProcessado])
 #plot_segments(B, P, QRS, T, fs)
 
 
 # Uso:
-fig = plot_ecg_segments(B[0:8], P[0:8], QRS[0:8], T[0:8], fs)
+fig = plot_ecg_segments(B[0:WINDOW_SIZE], P[0:WINDOW_SIZE], QRS[0:WINDOW_SIZE], T[0:WINDOW_SIZE], fs)
 plt.savefig(f'./graficos/ecg_segments{datetime.now()}.png', dpi=300, bbox_inches='tight')
 plt.close()
 
