@@ -105,10 +105,13 @@ def getSnr (noise, signal, title):
     print(f"SNR (dB) {title}: {snr}")
 
 
-windowedSignal = signal_extract(signal, 0.01)
+start = int(round(len(signal) * 0.01))
+end = len(signal) - int(round(len(signal) * 0.01))
+windowedSignal = signal[start:end]
 #filtered_signal = bandpass_filter(windowedSignal, fs, lowcut=0.5, highcut=40.0, order=4)
 signal_mean = signal_mean(windowedSignal)
 signal_std = signal_std(signal_mean)
+#final_signal =  ((windowedSignal - np.mean(windowedSignal)) / np.std(windowedSignal))
 final_signal = signal_std
 #print(final_signal)
 
@@ -117,7 +120,7 @@ getSnr(signal, final_signal, "pré processamento")
 
 print("processando...")
 start_time = time.time()  # Marca o início do tempo
-peaks = dt.dtPeaks(final_signal, [0,60], fs, 0)
+peaks = dt.dtPeaks(final_signal[0:3000], [0,60], fs, 0)
 end_time = time.time()  # Marca o fim do tempo
 print("processado!")
 
@@ -138,14 +141,15 @@ getSnr(final_signal, ecgH, "processado")
 #print(qrs_amplitude)
 
 #-------------------------CICLO-----------------------------------#
-if qrs_index[1] < theta  *fs:
-    qrs_index[1] = []
-    qrs_amplitude[1] = []
+if qrs_index[0] < round(theta * fs):
+    qrs_index = np.delete(qrs_index, 0)
+    qrs_amplitude = np.delete(qrs_amplitude, 0)
 
-if qrs_index[-1] > len(signal) - (0.6*fs):
-    qrs_index[-1] = []
-    qrs_amplitude[-1] = []
-# Batimentos
+if qrs_index[-1] > (len(signal) - round(lbda * fs)):
+    qrs_index = np.delete(qrs_index, -1)
+    qrs_amplitude = np.delete(qrs_amplitude, -1)
+
+
 # Batimentos
 B = np.zeros((len(qrs_amplitude), round(theta * fs) + round(lbda * fs) + 1))
 P = np.zeros((len(qrs_amplitude), round(lbdaP * fs) + 1))
@@ -156,22 +160,22 @@ for i in range(len(qrs_amplitude)):
     # Batimentos
     start_B = qrs_index[i] - round(theta * fs)
     end_B = qrs_index[i] + round(lbda * fs)
-    B[i] = signal[start_B : end_B + 1]  # +1 para incluir o end_B
+    B[i] = signal[int(start_B) : int(end_B) + 1]  # +1 para incluir o end_B
 
     # Onda P
     start_P = qrs_index[i] - round(theta * fs)
     end_P = start_P + round(lbdaP * fs)
-    P[i] = signal[start_P : end_P + 1]
+    P[i] = signal[int(start_P) : int(end_P) + 1]
 
     # Complexo QRS
     start_QRS = qrs_index[i] - round(thetaQRS * fs)
     end_QRS = qrs_index[i] + round(lbdaQRS * fs)
-    QRS[i] = signal[start_QRS : end_QRS + 1]
+    QRS[i] = signal[int(start_QRS) : int(end_QRS) + 1]
 
     # Onda T
     start_T = (qrs_index[i] + round(lbda * fs)) - round(0.3 * fs)
     end_T = qrs_index[i] + round(lbda * fs)
-    T[i] = signal[start_T : end_T + 1]
+    T[i] = signal[int(start_T) : int(end_T) + 1]
 
 B = B.T
 P = P.T
@@ -282,13 +286,13 @@ def plot_ecg_segments(B, P, QRS, T, fs):
 
 #
 #
-signal = plotSignal(signal, "SINAL (ORIGINAL)", 500)
-final_signal = plotSignal(final_signal, "SINAL (FILTRADO)", 500)
-ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 500)
+signal = plotSignal(signal, "SINAL (ORIGINAL)", 1000)
+final_signal = plotSignal(final_signal, "SINAL (FILTRADO)", 1000)
+ecgProcessado = plotSignal(ecgH, "SINAL (FILTRADO E PROCESSADO)", 1000)
 #batimentos = plotSignal(B[0], "BATIMENTOS", 300)
-complexoQrs = plotSignal(QRS, "COMPLEXO QRS")
-ondaT = plotSignal(T, "ONDA T", 100)
-ondaP = plotSignal(P, "ONDA P", 100)
+complexoQrs = plotSignal(QRS, "COMPLEXO QRS", 1000)
+ondaT = plotSignal(T, "ONDA T", 1000)
+ondaP = plotSignal(P, "ONDA P", 1000)
 
 
 saveToPng([signal, final_signal, ecgProcessado, complexoQrs, ondaT, ondaP])
