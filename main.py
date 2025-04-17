@@ -15,6 +15,7 @@ import detectionPeaks as dt
 #import ecg_plot as ecg
 import matplotlib.pyplot as plt
 import matplotlib as mt
+from scipy.signal import savgol_filter
 
 sampleFsMap = {
     "FA": 256,
@@ -26,7 +27,7 @@ sampleMap = {
 }
 
 WINDOW_SIZE = 8000
-CURRENT_SAMPLE = "FA"
+CURRENT_SAMPLE = "SINUS"
 #record = wf.rdsamp('16265')
 # record = wf.rdsamp("04015")
 # df =pd.DataFrame(record[0], columns=record[1]['sig_name'])
@@ -108,22 +109,47 @@ def bandpass_filter(signal, fs, lowcut=0.5, highcut=50.0, order=2):
     b, a = sg.butter(order, [low, high], btype='band')
     return sg.filtfilt(b, a, signal)
 
-def getSnr (noise, signal, title):
+def savitzky_golay_ecg_filter(signal, window_length=51, polyorder=3):
+    """
+    Aplica o filtro Savitzky-Golay ao sinal ECG.
+
+    Parameters:
+    signal: array-like - Sinal de entrada
+    window_length: int - Tamanho da janela (deve ser ímpar)
+    polyorder: int - Ordem do polinômio
+
+    Returns:
+    Sinal filtrado
+    """
+    # Garante que window_length seja ímpar e menor que o tamanho do sinal
+    if window_length % 2 == 0:
+        window_length += 1
+    if window_length > len(signal):
+        window_length = len(signal) // 2 * 2 + 1  # maior ímpar menor que len(signal)
+    return savgol_filter(signal, window_length, polyorder)
+
+def getSnr(noise, signal, title):
     originalNoise = min_max_scaling(np.array(noise[0:len(signal)]))
     filtredSignal = min_max_scaling(np.array(signal))
     noise = originalNoise - filtredSignal
-    snr = 10 * np.log10(np.sum(filtredSignal**2) / np.sum(noise**2))
-    signal_power = np.sum(filtredSignal**2)
-    noise_power = np.sum(noise**2)
-    print(f"Signal power: {signal_power}")
-    print(f"Noise power: {noise_power}")
-    print(f"Power ratio: {signal_power/noise_power}")
+    
+    # Correção do cálculo RMS
+    noise_RMS = np.sqrt(np.mean(originalNoise**2))
+    filtred_RMS = np.sqrt(np.mean(filtredSignal**2))
+    
+    noise = originalNoise - filtredSignal
+    signal_power = np.mean(filtredSignal ** 2)
+    noise_power = np.mean(noise ** 2)
+    #snr = 10 * np.log10(signal_power / noise_power)
+    snr = 10 * np.log10(np.mean(filtredSignal**2) / np.mean(noise**2))
     print(f"SNR (dB) {title}: {snr}")
 
 
 start = int(round(len(signal) * 0.01))
 end = len(signal) - int(round(len(signal) * 0.01))
 windowedSignal = signal[start:end] #tira 1% do começo e do fim
+windowedSignal = min_max_scaling(np.array(windowedSignal))
+#windowedSignal = savitzky_golay_ecg_filter(windowedSignal, window_length=51, polyorder=3)
 #filtered_signal = bandpass_filter(windowedSignal, fs, lowcut=0.5, highcut=40.0, order=4)
 signal_mean = signal_mean(windowedSignal)
 #signal_std = signal_std(signal_mean)
